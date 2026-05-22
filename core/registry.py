@@ -10,7 +10,6 @@ ctxfind-v2: Plugin Registry
 from typing import Dict, Type, List, Optional, Any
 from .interfaces import BaseParser, BaseEnricher, BaseRenderer
 
-
 class _RegistryBase:
     """Базовый класс для всех реестров (не наследовать, использовать композицию)"""
 
@@ -40,9 +39,9 @@ class _RegistryBase:
         return dict(self._items)
 
     def select_best(
-        self, 
-        file_path: str, 
-        content: str, 
+        self,
+        file_path: str,
+        content: str,
         mode: str = "auto"
     ) -> List[Type]:
         """
@@ -75,12 +74,10 @@ class _RegistryBase:
         """Очистить реестр (для тестов)"""
         self._items.clear()
 
-
 # Глобальные реестры (инициализируются при импорте модулей)
 parsers: _RegistryBase = _RegistryBase()
 enrichers: _RegistryBase = _RegistryBase()
 renderers: _RegistryBase = _RegistryBase()
-
 
 # Helper для регистрации (использовать в __init__.py модулей)
 def register_parser(name: str, cls: Type[BaseParser]):

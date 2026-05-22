@@ -1,4 +1,3 @@
-
 """
 ctxfind-v2: Language Configurations for Tree-Sitter Parser
 
@@ -14,7 +13,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from tree_sitter import Node
-
 
 @dataclass(frozen=True)
 class LanguageConfig:
@@ -44,7 +42,6 @@ class LanguageConfig:
     # Дополнительные паттерны для эвристик
     docstring_types: List[str] = field(default_factory=lambda: ["string", "comment"])
 
-
 # ─── Python Config ──────────────────────────────────────────────────────
 
 def _python_extract_name(node: Any) -> Optional[str]:
@@ -55,7 +52,6 @@ def _python_extract_name(node: Any) -> Optional[str]:
         if child.type == "identifier":
             return child.text.decode("utf-8") if isinstance(child.text, bytes) else child.text
     return None
-
 
 PYTHON_CONFIG = LanguageConfig(
     kind_map={
@@ -78,7 +74,6 @@ PYTHON_CONFIG = LanguageConfig(
     docstring_types=["string", "expression_statement"],  # expression_statement для docstring
 )
 
-
 # ─── JavaScript Config ──────────────────────────────────────────────────
 
 def _js_extract_name(node: Any) -> Optional[str]:
@@ -92,7 +87,6 @@ def _js_extract_name(node: Any) -> Optional[str]:
             text = child.text
             return text.decode("utf-8") if isinstance(text, bytes) else text
     return None
-
 
 JAVASCRIPT_CONFIG = LanguageConfig(
     kind_map={
@@ -119,7 +113,6 @@ JAVASCRIPT_CONFIG = LanguageConfig(
     export_keywords=["export", "module.exports", "exports."],
     docstring_types=["comment"],
 )
-
 
 # ─── TypeScript Config ──────────────────────────────────────────────────
 
@@ -153,7 +146,6 @@ TYPESCRIPT_CONFIG = LanguageConfig(
     docstring_types=["comment"],
 )
 
-
 # ─── CSS Config ─────────────────────────────────────────────────────────
 
 def _css_extract_name(node: Any) -> Optional[str]:
@@ -167,7 +159,6 @@ def _css_extract_name(node: Any) -> Optional[str]:
             if decoded and not decoded.startswith("{"):
                 return decoded.lstrip(".#")
     return None
-
 
 CSS_CONFIG = LanguageConfig(
     kind_map={
@@ -184,7 +175,6 @@ CSS_CONFIG = LanguageConfig(
     docstring_types=["comment"],
 )
 
-
 # ─── Реестр конфигов ────────────────────────────────────────────────────
 
 LANGUAGE_CONFIGS: Dict[str, LanguageConfig] = {
@@ -194,14 +184,12 @@ LANGUAGE_CONFIGS: Dict[str, LanguageConfig] = {
     "css": CSS_CONFIG,
 }
 
-
 def get_language_config(language_name: str) -> LanguageConfig:
     """Получить конфигурацию языка по имени"""
     if language_name not in LANGUAGE_CONFIGS:
         raise ValueError(f"Unknown language: {language_name}. "
-                        f"Available: {list(LANGUAGE_CONFIGS.keys())}")
+                         f"Available: {list(LANGUAGE_CONFIGS.keys())}")
     return LANGUAGE_CONFIGS[language_name]
-
 
 def register_language_config(name: str, config: LanguageConfig):
     """Зарегистрировать новую конфигурацию языка"""

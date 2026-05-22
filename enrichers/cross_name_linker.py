@@ -1,4 +1,3 @@
-
 """
 ctxfind-v2: Cross-Name Linker (Simple)
 
@@ -18,7 +17,6 @@ from core.interfaces import BaseEnricher
 from core.registry import register_enricher, parsers
 
 log = logging.getLogger(__name__)
-
 
 class CrossNameLinker:
     """
@@ -127,8 +125,8 @@ class CrossNameLinker:
             node = all_results[ri].matches[ni]
 
             # Проверяем, что такой Ref ещё нет
-            existing = [r for r in node.references if 
-                       r.target_name == ref.target_name and r.target_file == ref.target_file]
+            existing = [r for r in node.references if
+                        r.target_name == ref.target_name and r.target_file == ref.target_file]
             if not existing:
                 # Frozen dataclass — используем object.__setattr__
                 new_refs = list(node.references) + [ref]
@@ -159,7 +157,6 @@ class CrossNameLinker:
                 return f.read()
         except Exception:
             return ""
-
 
 # Регистрация
 register_enricher("cross-name-linker", CrossNameLinker)

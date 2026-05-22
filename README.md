@@ -23,7 +23,7 @@ ctxfind "User" ./src --link simple --format json
 | Режим | Описание | Требования |
 |-------|----------|------------|
 | `fast` | Regex-based, быстрый, работает всегда | Нет |
-| `deep` | AST-парсинг через tree-sitter | `pip install ctxfind[ast]` |
+| `deep` | AST-парсинг через tree-sitter-languages | `pip install tree-sitter==0.20.4 tree-sitter-languages==1.10.2` |
 | `auto` | Автовыбор по размеру проекта | Нет |
 
 ## Форматы вывода
@@ -38,15 +38,14 @@ ctxfind "User" ./src --link simple --format json
 
 ```bash
 # Установка AST-зависимостей
-pip install ctxfind[ast]
+pip install tree-sitter==0.20.4 tree-sitter-languages==1.10.2
 
 # Проверка
 ctxfind "main" ./src --mode deep --format json
 ```
 
 **Известные ограничения:**
-- Python 3.8 на Windows может требовать MSVC Build Tools для компиляции grammar
-- Если установка не удалась — `deep` режим автоматически переключается на `fast`
+- Если tree-sitter-languages не установлен — `deep` режим автоматически переключается на `fast`
 
 ## Архитектура
 
@@ -54,7 +53,7 @@ ctxfind "main" ./src --mode deep --format json
 Query → Discovery → Parser (fallback chain) → Enricher → Renderer → Output
 ```
 
-- **Parser**: regex-fallback (всегда), tree-sitter (опционально)
+- **Parser**: regex-fallback (всегда), tree-sitter (опционально, через tree_sitter_languages)
 - **Enricher**: heuristic_scorer (v1 logic), cross_name_linker (опционально)
 - **Renderer**: compact, json
 

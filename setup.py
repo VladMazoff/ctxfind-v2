@@ -1,4 +1,3 @@
-
 from setuptools import setup, find_packages
 
 setup(
@@ -11,8 +10,8 @@ setup(
     ],
     extras_require={
         "ast": [
- "tree-sitter==0.20.4; python_version >= '3.8'",
-"tree-sitter-languages==1.10.2; python_version >= '3.8'"
+            "tree-sitter==0.20.4; python_version >= '3.8'",
+            "tree-sitter-languages==1.10.2; python_version >= '3.8'"
         ],
     },
     entry_points={

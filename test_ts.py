@@ -20,7 +20,6 @@ print("PYTHON AST:")
 print(python_tree.root_node.sexp())
 print(f"Корневой узел: {python_tree.root_node.type}")
 
-
 # 2. ПАРСИНГ JAVASCRIPT
 js_code = b"""
 function multiply(x, y) {
@@ -39,7 +38,6 @@ print("\n" + "=" * 50)
 print("JAVASCRIPT AST:")
 print(js_tree.root_node.sexp())
 print(f"Корневой узел: {js_tree.root_node.type}")
-
 
 # 3. ПАРСИНГ HTML
 html_code = b"""
@@ -65,3 +63,44 @@ print("\n" + "=" * 50)
 print("HTML AST:")
 print(html_tree.root_node.sexp())
 print(f"Корневой узел: {html_tree.root_node.type}")
+
+# 4. ПАРСИНГ CSS
+css_code = b"""
+.user-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.user-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+"""
+
+css_parser = get_parser("css")
+css_tree = css_parser.parse(css_code)
+
+print("\n" + "=" * 50)
+print("CSS AST:")
+print(css_tree.root_node.sexp())
+print(f"Корневой узел: {css_tree.root_node.type}")
+
+# 5. ПАРСИНГ TYPESCRIPT
+ts_code = b"""
+interface User {
+    name: string;
+    email: string;
+}
+
+function createUser(data: User): User {
+    return { ...data };
+}
+"""
+
+ts_parser = get_parser("typescript")
+ts_tree = ts_parser.parse(ts_code)
+
+print("\n" + "=" * 50)
+print("TYPESCRIPT AST:")
+print(ts_tree.root_node.sexp())
+print(f"Корневой узел: {ts_tree.root_node.type}")

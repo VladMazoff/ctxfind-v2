@@ -1,17 +1,18 @@
-<html>
-<head><title>User Page</title></head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Page</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
 <body>
-    <div class="user-card">
-        <span class="user-name">{{ user.name }}</span>
-        <span class="user-email">{{ user.email }}</span>
+    <div class="user-container">
+        <h1 class="user-title">User Profile</h1>
+        <div class="user-card" id="user-card">
+            <p class="user-name">Name: <span id="user-name"></span></p>
+            <p class="user-email">Email: <span id="user-email"></span></p>
+        </div>
     </div>
-    <script>
-        // validate form before submit
-        function submitForm() {
-            if (validate(this.form)) {
-                this.form.submit();
-            }
-        }
-    </script>
+    <script src="user_manager.js"></script>
 </body>
 </html>

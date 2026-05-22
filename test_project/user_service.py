@@ -22,7 +22,7 @@ class UserService:
         user = User(name=data["name"], email=data["email"])
         if user.validate():
             self.users.append(user)
-        return user
+            return user
 
     def find_user(self, email: str) -> Optional[User]:
         for user in self.users:

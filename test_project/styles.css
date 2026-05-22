@@ -1,13 +1,25 @@
+.user-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
 .user-card {
-    border: 1px solid #ccc;
+    border: 1px solid #ddd;
+    border-radius: 8px;
     padding: 16px;
+    background: #fff;
 }
 
-.user-name {
-    font-weight: bold;
+.user-title {
     color: #333;
+    font-size: 24px;
+    margin-bottom: 16px;
 }
 
+.user-name,
 .user-email {
+    font-size: 16px;
+    line-height: 1.5;
     color: #666;
 }

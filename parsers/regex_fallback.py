@@ -1,4 +1,3 @@
-
 """
 ctxfind-v2: Regex Fallback Parser
 
@@ -17,7 +16,6 @@ from core.models import CodeNode, Span, ParseResult, QueryMode
 from core.interfaces import BaseParser
 from core.registry import register_parser
 from parsers.base import ParserUtils, FallbackParserMixin
-
 
 class RegexFallbackParser(FallbackParserMixin):
     """
@@ -43,7 +41,7 @@ class RegexFallbackParser(FallbackParserMixin):
         "python": {
             "function": r"^\s*def\s+{query}\b",
             "class": r"^\s*class\s+{query}\b",
-            "method": r"^\s*def\s+{query}\b",  # отличие от function — в meta
+            "method": r"^\s*def\s+{query}\b",
             "import": r"(?:from|import)\s+\S*\b{query}\b",
             "variable": r"\b{query}\b\s*=",
         },
@@ -70,15 +68,16 @@ class RegexFallbackParser(FallbackParserMixin):
         },
         "html": {
             "html_tag": r"<{query}\b",
-            "html_class": r'class=["\'][^"\']*\b{query}\b',
-            "html_id": r'id=["\'][^"\']*\b{query}\b',
+            "html_class": r"class=[\"\'][^\"\']*\b{query}\b",
+            "html_id": r"id=[\"\'][^\"\']*\b{query}\b",
         },
     }
 
-    def supports(self, file_path: str, content_snippet: str) -> bool:
+    @staticmethod
+    def supports(file_path: str, content_snippet: str) -> bool:
         """Поддерживаем все файлы с известными расширениями"""
         ext = Path(file_path).suffix.lower()
-        return ext in self.supported_extensions
+        return ext in RegexFallbackParser.supported_extensions
 
     def parse(
         self,
@@ -88,20 +87,16 @@ class RegexFallbackParser(FallbackParserMixin):
         mode: QueryMode = QueryMode.AUTO,
         options: Optional[Dict[str, Any]] = None
     ) -> ParseResult:
-        """
-        Основной метод: regex-поиск query в коде.
-        """
+        """Основной метод: regex-поиск query в коде."""
         result = ParseResult(
             query=query,
             file_path=file_path,
             parser_name=self.name
         )
 
-        # Определяем язык по расширению
         language = self._detect_language(file_path)
         patterns = self._patterns.get(language, self._patterns.get("python", {}))
 
-        # Ищем по всем паттернам
         all_nodes = []
         for kind, pattern in patterns.items():
             try:
@@ -112,10 +107,8 @@ class RegexFallbackParser(FallbackParserMixin):
                     file_path=file_path,
                     language=language
                 )
-                # Добавляем v1_role для каждого узла
                 for node in nodes:
                     role = self._guess_role(node, content)
-                    # Создаём новый узел с обновлённым meta (immutable)
                     updated_node = node.with_meta(
                         v1_role=role,
                         match_type="regex_fallback",
@@ -123,11 +116,9 @@ class RegexFallbackParser(FallbackParserMixin):
                     )
                     all_nodes.append(updated_node)
             except re.error:
-                # Невалидный regex — пропускаем паттерн
                 result.warnings.append(f"Invalid regex pattern for {kind}: {pattern}")
                 continue
 
-        # Убираем дубликаты по span
         seen = set()
         unique_nodes = []
         for node in all_nodes:
@@ -138,7 +129,6 @@ class RegexFallbackParser(FallbackParserMixin):
 
         result.matches = unique_nodes
 
-        # Базовые эвристики
         if result.matches:
             result.heuristics["parser_confidence"] = 0.5
             result.heuristics["match_count"] = float(len(result.matches))
@@ -146,24 +136,18 @@ class RegexFallbackParser(FallbackParserMixin):
         return result
 
     def quick_match(self, content: str, query: str) -> List[Dict[str, Any]]:
-        """
-        Быстрый поиск для режима FAST.
-        Возвращает простые матчи: {line, col, snippet, confidence}
-        """
+        """Быстрый поиск для режима FAST."""
         results = []
-        # Простой текстовый поиск
         idx = 0
         while True:
             idx = content.find(query, idx)
             if idx == -1:
                 break
 
-            # Подсчёт строки и колонки
             lines_before = content[:idx].count("\n")
             last_newline = content[:idx].rfind("\n")
             col = idx - last_newline - 1 if last_newline >= 0 else idx
 
-            # Контекст вокруг
             start_ctx = max(0, idx - 50)
             end_ctx = min(len(content), idx + len(query) + 50)
             snippet = content[start_ctx:end_ctx]
@@ -178,8 +162,6 @@ class RegexFallbackParser(FallbackParserMixin):
 
         return results
 
-    # ─── Внутренняя логика ────────────────────────────────────────────────
-
     def _detect_language(self, file_path: str) -> str:
         """Определить язык по расширению"""
         ext = Path(file_path).suffix.lower()
@@ -193,23 +175,12 @@ class RegexFallbackParser(FallbackParserMixin):
         return mapping.get(ext, "python")
 
     def _guess_role(self, node: CodeNode, content: str) -> str:
-        """
-        Угадать семантическую роль из v1:
-        - "<< def" : определение
-        - ">> use" : использование
-        - ">< mod" : модификатор/переопределение
-        """
+        """Угадать семантическую роль из v1."""
         kind = node.kind
-
-        # Определения
         if kind in ("function", "class", "method", "interface", "type", "variable", "css_selector"):
             return "<< def"
-
-        # Использования
         if kind in ("import",):
             return ">> use"
-
-        # По умолчанию — использование
         return ">> use"
 
 

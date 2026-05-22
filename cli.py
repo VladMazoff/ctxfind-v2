@@ -1,4 +1,3 @@
-
 """
 ctxfind-v2: CLI Entry Point
 
@@ -19,7 +18,7 @@ if __name__ == "__main__" and __package__ is None:
     parent_dir = os.path.dirname(cli_dir)
     if parent_dir not in sys.path:
         sys.path.insert(0, parent_dir)
-    # Теперь импорты будут работать как абсолютные
+        # Теперь импорты будут работать как абсолютные
 
 import argparse
 import logging
@@ -38,7 +37,6 @@ from core.registry import parsers as registry_parsers, enrichers as registry_enr
 from orchestrator import SearchOrchestrator, prepare_render_hints
 from config import get_config
 
-
 def build_parser() -> argparse.ArgumentParser:
     """Настроить CLI-аргументы"""
     config = get_config()
@@ -54,7 +52,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Режимы
     p.add_argument(
-        "--mode", 
+        "--mode",
         choices=["fast", "deep", "auto"],
         default=config.default_mode,
         help="Режим поиска: fast=эвристики, deep=AST, auto=выбор по размеру"
@@ -100,7 +98,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     return p
 
-
 def main(argv: Optional[List[str]] = None) -> int:
     """Точка входа"""
     try:
@@ -133,33 +130,28 @@ def main(argv: Optional[List[str]] = None) -> int:
             from parsers.tree_sitter_parser import TREE_SITTER_AVAILABLE
             if not TREE_SITTER_AVAILABLE:
                 print(
-                    "Warning: deep mode requires optional dependencies. "
-                    "Install with: pip install ctxfind[ast]",
+                    "Warning: deep mode requires tree-sitter-languages. "
+                    "Install with: pip install tree-sitter==0.20.4 tree-sitter-languages==1.10.2",
                     file=sys.stderr
                 )
                 print("Falling back to fast mode.", file=sys.stderr)
                 args.mode = "fast"
             else:
-                # Проверяем, что grammar загружается
+                # Проверяем, что парсер загружается
                 try:
-                    from tree_sitter_python import language as py_lang
-                    from tree_sitter import Language
-                    _ = Language(py_lang(), "python")
-                    print("AST mode: tree-sitter ready", file=sys.stderr)
+                    from tree_sitter_languages import get_parser
+                    _ = get_parser("python")
+                    print("AST mode: tree-sitter-languages ready", file=sys.stderr)
                 except Exception as e:
                     print(
-                        f"Warning: tree-sitter installed but grammar failed to load: {e}",
+                        f"Warning: tree-sitter-languages installed but parser failed to load: {e}",
                         file=sys.stderr
                     )
-                    print(
-                        "On Windows with Python 3.8, you may need MSVC Build Tools. "
-                        "Falling back to fast mode.",
-                        file=sys.stderr
-                    )
+                    print("Falling back to fast mode.", file=sys.stderr)
                     args.mode = "fast"
         except ImportError:
             print(
-                "Warning: deep mode unavailable. Install with: pip install ctxfind[ast]",
+                "Warning: deep mode unavailable. Install with: pip install tree-sitter==0.20.4 tree-sitter-languages==1.10.2",
                 file=sys.stderr
             )
             args.mode = "fast"
@@ -240,7 +232,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(output)
 
     return 0
-
 
 # UTF-8 fix for Windows
 if sys.platform == 'win32':

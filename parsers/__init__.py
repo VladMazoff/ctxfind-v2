@@ -8,7 +8,11 @@ from .tree_sitter_parser import TreeSitterParser
 from .lang_configs import get_language_config, LanguageConfig, register_language_config
 
 __all__ = [
-    "ParserUtils", "FallbackParserMixin",
-    "RegexFallbackParser", "TreeSitterParser",
-    "get_language_config", "LanguageConfig", "register_language_config",
+    "ParserUtils",
+    "FallbackParserMixin",
+    "RegexFallbackParser",
+    "TreeSitterParser",
+    "get_language_config",
+    "LanguageConfig",
+    "register_language_config",
 ]

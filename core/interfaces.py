@@ -10,7 +10,6 @@ ctxfind-v2: Module Interfaces (Protocols)
 from typing import Protocol, Dict, Any, List, Optional, runtime_checkable
 from .models import ParseResult, CodeNode, RenderHint, QueryMode
 
-
 @runtime_checkable
 class BaseParser(Protocol):
     """
@@ -64,7 +63,6 @@ class BaseParser(Protocol):
         # Optional: если не реализован, ядро пропустит этот шаг
         ...
 
-
 @runtime_checkable
 class BaseEnricher(Protocol):
     """
@@ -94,7 +92,6 @@ class BaseEnricher(Protocol):
         - test_finder: пометить узлы, у которых есть тесты
         """
         ...
-
 
 @runtime_checkable
 class BaseRenderer(Protocol):

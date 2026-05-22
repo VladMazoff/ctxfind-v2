@@ -1,25 +1,29 @@
-// Test JS module
-import { User } from './models';
+/**
+ * User manager module
+ */
 
 class UserManager {
     constructor() {
         this.users = [];
     }
 
-    addUser(data) {
-        const user = new User(data.name, data.email);
+    addUser(userData) {
+        const user = new User(userData);
         this.users.push(user);
         return user;
     }
 
-    findUser(email) {
+    findUserByEmail(email) {
         return this.users.find(u => u.email === email);
     }
 
-    processUser(data) {
-        return this.addUser(data);
+    validateUser(user) {
+        return user.name && user.email.includes('@');
     }
 }
 
-const manager = new UserManager();
-export { UserManager };
+function createUserManager() {
+    return new UserManager();
+}
+
+module.exports = { UserManager, createUserManager };

@@ -1,12 +1,20 @@
 """
-ctxfind-v2: Tree-Sitter Parser
+ctxfind-v2: Tree-Sitter Parser (via tree_sitter_languages)
 
 Стратегия:
-- Единая обёртка над tree-sitter для всех языков
+- Единая обёртка над tree_sitter_languages.get_parser() для всех языков
 - Язык подгружается динамически по расширению/конфигу
 - AST traversal делегирован стратегии (поиск по имени/типу/паттерну)
 - Контекст = полный текст семантического родителя (функция/класс/модуль)
 - НИКАКОЙ обрезки контекста здесь. Renderer решит.
+
+Зависимости:
+    pip install tree-sitter==0.20.4 tree-sitter-languages==1.10.2
+
+Рабочий пример (test_ts.py):
+    from tree_sitter_languages import get_parser
+    python_parser = get_parser("python")
+    tree = python_parser.parse(b"def foo(): pass")
 """
 
 from typing import Dict, Any, List, Optional, Callable
@@ -22,30 +30,29 @@ from parsers.lang_configs import get_language_config, LanguageConfig
 
 log = logging.getLogger(__name__)
 
-# Ленивая загрузка tree-sitter (чтобы не падать при импорте без зависимостей)
+# ─── Ленивая загрузка tree_sitter_languages ─────────────────────────────
 TREE_SITTER_AVAILABLE = False
-_Language = None
-_Parser = None
+_get_parser = None
 
 try:
-    from tree_sitter import Language, Parser, Node
+    from tree_sitter_languages import get_parser
     TREE_SITTER_AVAILABLE = True
-    _Language = Language
-    _Parser = Parser
+    _get_parser = get_parser
+    log.debug("tree_sitter_languages loaded successfully")
 except ImportError:
     warnings.warn(
-        "tree-sitter not installed. Deep mode unavailable. "
-        "Install with: pip install ctxfind[ast]",
+        "tree-sitter-languages not installed. Deep mode unavailable. "
+        "Install with: pip install tree-sitter==0.20.4 tree-sitter-languages==1.10.2",
         ImportWarning
     )
 
 
 class TreeSitterParser:
     """
-    Реализация BaseParser через tree-sitter.
+    Реализация BaseParser через tree_sitter_languages.get_parser().
 
     Архитектурные решения:
-    1. Язык = кэшированный объект Language, переиспользуется между вызовами
+    1. Парсер = объект от get_parser(), кэшируется на уровне класса
     2. Парсинг = однократный, дерево кэшируется на время обработки файла
     3. Поиск = Visitor pattern: обход дерева + сбор совпадений
     4. Контекст = берётся текст node.parent (или root, если нет родителя)
@@ -63,64 +70,44 @@ class TreeSitterParser:
         ".html": "html",
     }
 
-    # Кэш языков на уровне класса
-    _language_cache: Dict[str, Any] = {}
+    # Кэш парсеров на уровне класса: language_name -> Parser
+    _parser_cache: Dict[str, Any] = {}
 
     def __init__(self, language_name: Optional[str] = None):
         self.language_name = language_name
-        self.language: Optional[Any] = None
         self.parser: Optional[Any] = None
         self.config: Optional[LanguageConfig] = None
 
-    def _init_language(self, language_name: str) -> bool:
-        """Инициализировать Language и Parser (с кэшированием).
+    def _init_parser(self, language_name: str) -> bool:
+        """Инициализировать Parser через get_parser (с кэшированием).
 
         Returns:
-            bool: True если успешно, False при ошибке загрузки .so/.dll
+            bool: True если успешно, False при ошибке загрузки
         """
-        if language_name in self._language_cache:
-            self.language = self._language_cache[language_name]
-            self.parser = _Parser()
-            self.parser.set_language(self.language)
+        if language_name in self._parser_cache:
+            self.parser = self._parser_cache[language_name]
             return True
 
         if not TREE_SITTER_AVAILABLE:
-            log.warning("tree-sitter not installed")
+            log.warning("tree_sitter_languages not installed")
             return False
 
-        # Динамическая загрузка grammar
         try:
-            if language_name == "python":
-                from tree_sitter_python import language as py_lang
-                self.language = _Language(py_lang(), "python")
-            elif language_name == "javascript":
-                from tree_sitter_javascript import language as js_lang
-                self.language = _Language(js_lang(), "javascript")
-            elif language_name == "typescript":
-                from tree_sitter_typescript import language as ts_lang
-                self.language = _Language(ts_lang(), "typescript")
-            elif language_name == "css":
-                from tree_sitter_css import language as css_lang
-                self.language = _Language(css_lang(), "css")
-            else:
-                log.warning(f"Unsupported language: {language_name}")
-                return False
-
-            self._language_cache[language_name] = self.language
-            self.parser = _Parser()
-            self.parser.set_language(self.language)
+            self.parser = _get_parser(language_name)
+            self._parser_cache[language_name] = self.parser
+            log.debug(f"Loaded parser for language: {language_name}")
             return True
-
-        except (ImportError, OSError, RuntimeError) as e:
-            log.warning(f"Failed to load tree-sitter language '{language_name}': {e}")
+        except Exception as e:
+            log.warning(f"Failed to load parser for language '{language_name}': {e}")
             return False
 
-    def supports(self, file_path: str, content_snippet: str) -> bool:
+    @staticmethod
+    def supports(file_path: str, content_snippet: str) -> bool:
         """Быстрая проверка по расширению. Дёшево, без парсинга."""
         if not TREE_SITTER_AVAILABLE:
             return False
         ext = Path(file_path).suffix.lower()
-        return ext in self.supported_extensions
+        return ext in TreeSitterParser.supported_extensions
 
     def parse(
         self,
@@ -139,7 +126,7 @@ class TreeSitterParser:
 
         if not TREE_SITTER_AVAILABLE:
             result.warnings.append(
-                "AST parser unavailable: install with 'pip install ctxfind[ast]'"
+                "AST parser unavailable: install with 'pip install tree-sitter==0.20.4 tree-sitter-languages==1.10.2'"
             )
             return result
 
@@ -152,7 +139,13 @@ class TreeSitterParser:
 
             self.language_name = language_name
             self.config = get_language_config(language_name)
-            self._init_language(language_name)
+
+            if not self._init_parser(language_name):
+                result.warnings.append(
+                    f"Failed to initialize parser for {language_name}. "
+                    f"Is tree-sitter-languages installed?"
+                )
+                return result
 
             # 1. Построить AST
             tree = self._parse_tree(content)
@@ -164,13 +157,17 @@ class TreeSitterParser:
             matches_ts = self._find_nodes(tree.root_node, query, mode)
 
             # 3. Преобразовать в CodeNode
+            seen = set()
             for ts_node in matches_ts:
                 node = self._ts_node_to_code_node(
                     ts_node=ts_node,
                     file_path=file_path,
                     content=content
                 )
-                result.matches.append(node)
+                # Дедупликация по id
+                if node.id not in seen:
+                    seen.add(node.id)
+                    result.matches.append(node)
 
             # 4. Заполнить эвристики парсера
             result.heuristics["parser_confidence"] = 0.95 if matches_ts else 0.0
@@ -256,7 +253,7 @@ class TreeSitterParser:
 
     def _ts_node_to_code_node(self, ts_node: Any, file_path: str, content: str) -> CodeNode:
         """Преобразовать tree-sitter Node в унифицированный CodeNode."""
-        kind = self._map_kind(ts_node.type)
+        kind = self._map_kind(ts_node)
         name = self._extract_name(ts_node) or "unknown"
 
         span = Span(
@@ -266,6 +263,7 @@ class TreeSitterParser:
             end_col=ts_node.end_point[1]
         )
 
+        # ИСПРАВЛЕНИЕ: контекст = текст самого узла + несколько строк родителя для контекста
         context_text = self._extract_semantic_context(ts_node, content)
 
         meta = {
@@ -293,40 +291,73 @@ class TreeSitterParser:
         )
 
     def _extract_semantic_context(self, node: Any, full_content: str) -> str:
-        """Вернуть полный текст кода, который логически содержит node."""
-        if self.config is None:
-            return full_content[node.start_byte:node.end_byte]
+        """
+        Вернуть полный текст кода, который логически содержит node.
 
-        scope_node = node
-        current = node
+        ИСПРАВЛЕНИЕ: берём текст самого узла + до 3 строк родителя для контекста,
+        но не весь родительский scope (чтобы не показывать класс целиком).
+        """
+        # Текст самого узла
+        node_text = full_content[node.start_byte:node.end_byte]
 
-        while current.parent is not None:
-            parent = current.parent
-            if parent.type in self.config.scope_types:
-                scope_node = parent
-                break
-            current = parent
+        # Добавляем до 3 строк контекста сверху (родитель/соседи)
+        lines_before = full_content[:node.start_byte].split("\n")
+        context_before = ""
+        if len(lines_before) >= 2:
+            # Берём до 2 строк перед узлом
+            context_before = "\n".join(lines_before[-2:])
 
-        if scope_node == node and node.parent is not None:
-            scope_node = node.parent
+        if context_before:
+            return context_before + "\n" + node_text
+        return node_text
 
-        return full_content[scope_node.start_byte:scope_node.end_byte]
+    def _map_kind(self, node: Any) -> str:
+        """
+        Маппинг tree-sitter типов → унифицированные kind.
 
-    def _map_kind(self, ts_type: str) -> str:
-        """Маппинг tree-sitter типов → унифицированные kind"""
+        ИСПРАВЛЕНИЕ: различаем method vs function по parent.type.
+        """
+        ts_type = node.type
         if self.config:
-            return self.config.kind_map.get(ts_type, "unknown")
-        return "unknown"
+            base_kind = self.config.kind_map.get(ts_type, "unknown")
+        else:
+            base_kind = "unknown"
+
+        # Различаем method vs function
+        if base_kind == "function" and node.parent:
+            parent_type = node.parent.type
+            if parent_type in ("class_definition", "class_declaration", "class_body", "object"):
+                return "method"
+
+        return base_kind
 
     def _extract_name(self, node: Any) -> Optional[str]:
-        """Извлечь имя из AST-узла через конфигурацию"""
-        if self.config and self.config.name_strategy:
-            return self.config.name_strategy(node)
+        """
+        Извлечь имя из AST-узла.
 
+        ИСПРАВЛЕНИЕ: более robust логика для разных языков.
+        """
+        # Сначала пробуем конфигурацию
+        if self.config and self.config.name_strategy:
+            result = self.config.name_strategy(node)
+            if result:
+                return result
+
+        # Общая логика: ищем identifier или property_identifier
         for child in node.children:
-            if child.type == "identifier":
+            if child.type in ("identifier", "property_identifier", "type_identifier"):
                 text = child.text
-                return text.decode("utf-8") if isinstance(text, bytes) else text
+                decoded = text.decode("utf-8") if isinstance(text, bytes) else text
+                if decoded:
+                    return decoded
+
+        # Для Python: если нет identifier, пробуем найти внутри decorated_definition
+        if node.type == "decorated_definition" and node.children:
+            # Рекурсивно ищем внутри
+            for child in node.children:
+                if child.type in ("function_definition", "class_definition"):
+                    return self._extract_name(child)
+
         return None
 
     def _is_exported(self, node: Any, content: str) -> bool:
@@ -357,7 +388,7 @@ class TreeSitterParser:
             if child.type in ("string", "expression_statement", "comment"):
                 text = child.text.decode("utf-8") if isinstance(child.text, bytes) else child.text
                 stripped = text.strip()
-                if stripped.startswith(('"""', "'''", "/**", "/*")):
+                if stripped.startswith(("\"\"\"", "\'\'\'", "/**", "/*")):
                     return True
 
         return False

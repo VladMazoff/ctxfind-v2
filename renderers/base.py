@@ -11,7 +11,6 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 from core.models import ParseResult, RenderHint, CodeNode
 
-
 class BaseRendererImpl(ABC):
     """
     Базовая реализация для рендереров.
@@ -125,7 +124,7 @@ class BaseRendererImpl(ABC):
             return "[...]\n" + "\n".join(lines[-max_lines:])
         elif strategy == "ellipsis-middle":
             half = max_lines // 2
-            return "\n".join(lines[:half]) + "\n    [...]\n" + "\n".join(lines[-half:])
+            return "\n".join(lines[:half]) + "\n [...]\n" + "\n".join(lines[-half:])
         elif strategy == "smart":
             # Делегируем умную обрезку
             hint = RenderHint(
@@ -146,7 +145,6 @@ class BaseRendererImpl(ABC):
         # Примерно 4 символа на токен для кода
         # TODO: заменить на tiktoken если нужен точный подсчёт
         return max(1, len(text) // 4)
-
 
 # Импорт Span нужен для _truncate_code
 from core.models import Span

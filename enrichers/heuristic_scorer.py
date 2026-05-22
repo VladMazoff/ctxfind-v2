@@ -1,4 +1,3 @@
-
 """
 ctxfind-v2: Heuristic Scorer (v1 Logic Port)
 
@@ -17,7 +16,6 @@ from core.models import ParseResult, CodeNode, Span
 from core.interfaces import BaseEnricher
 from core.registry import register_enricher
 from config import get_config, HeuristicWeights
-
 
 class HeuristicScorer:
     """
@@ -196,7 +194,6 @@ class HeuristicScorer:
             meaningful += 1
 
         return meaningful / len(lines)
-
 
 # Регистрация
 register_enricher("v1-heuristics", HeuristicScorer)

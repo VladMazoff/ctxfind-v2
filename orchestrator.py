@@ -21,7 +21,6 @@ from config import get_config
 
 log = logging.getLogger(__name__)
 
-
 class SearchOrchestrator:
     """
     Координатор пайплайна: discovery → parse → enrich → aggregate.
@@ -38,7 +37,7 @@ class SearchOrchestrator:
         self.filters = filters or {}
         self.options = options or {}
         self._fallback_parser_name = self.options.get(
-            "fallback_parser", 
+            "fallback_parser",
             get_config().fallback_parser
         )
         self.link_names = self.options.get("link", None)  # None | "simple"
@@ -46,9 +45,9 @@ class SearchOrchestrator:
         # Логирование режима при первом запуске
         try:
             from parsers.tree_sitter_parser import TREE_SITTER_AVAILABLE
-            ast_status = "ready" if TREE_SITTER_AVAILABLE else "optional (install ctxfind[ast])"
+            ast_status = "ready" if TREE_SITTER_AVAILABLE else "optional (install tree-sitter-languages)"
         except ImportError:
-            ast_status = "optional (install ctxfind[ast])"
+            ast_status = "optional (install tree-sitter-languages)"
 
         log.info(f"ctxfind v2 alpha — fast mode ready, ast mode: {ast_status}")
 
@@ -260,7 +259,7 @@ class SearchOrchestrator:
             try:
                 parser = parser_cls()
                 result = parser.parse(
-                    file_path, content, query, 
+                    file_path, content, query,
                     mode=self.mode, options=self.options
                 )
 
@@ -282,7 +281,7 @@ class SearchOrchestrator:
         # Все кандидаты упали → fallback
         log.warning(f"All parsers failed for {file_path}, using fallback. Last error: {last_error}")
         return self._run_fallback_parser(
-            file_path, content, query, 
+            file_path, content, query,
             f"fallback_after_error: {last_error}"
         )
 

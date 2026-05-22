@@ -12,13 +12,11 @@ from typing import Optional, List, Dict, Any
 from enum import Enum
 import hashlib
 
-
 class QueryMode(Enum):
     """Режимы поиска — влияют на выбор парсера и глубину"""
-    FAST = "fast"        # только regex fallback, минимум парсинга
-    DEEP = "deep"        # полный AST-парсинг + линкер
-    AUTO = "auto"        # эвристика: маленький проект → deep, большой → fast
-
+    FAST = "fast"  # только regex fallback, минимум парсинга
+    DEEP = "deep"  # полный AST-парсинг + линкер
+    AUTO = "auto"  # эвристика: маленький проект → deep, большой → fast
 
 @dataclass(frozen=True)
 class Span:
@@ -62,7 +60,6 @@ class Span:
             end_col=end.get("character", 0),
         )
 
-
 @dataclass(frozen=True)
 class Ref:
     """Ссылка на другой узел (для графа зависимостей)"""
@@ -77,13 +74,13 @@ class Ref:
             raise ValueError(f"Invalid ref_type: {self.ref_type}")
 
     def __hash__(self):
-        return hash((self.target_name, self.target_kind, self.source_file, 
+        return hash((self.target_name, self.target_kind, self.source_file,
                      self.target_file or "", self.ref_type))
 
     def __eq__(self, other):
         if not isinstance(other, Ref):
             return NotImplemented
-        return (self.target_name == other.target_name and 
+        return (self.target_name == other.target_name and
                 self.target_kind == other.target_kind and
                 self.source_file == other.source_file and
                 self.target_file == other.target_file and
@@ -97,7 +94,6 @@ class Ref:
             "target_file": self.target_file,
             "ref_type": self.ref_type,
         }
-
 
 @dataclass(frozen=True)
 class CodeNode:
@@ -191,7 +187,6 @@ class CodeNode:
             referenced_by=list(self.referenced_by),
             meta=new_meta,
         )
-
 
 @dataclass
 class ParseResult:
@@ -294,7 +289,6 @@ class ParseResult:
             warnings=list(self.warnings),
         )
 
-
 @dataclass
 class RenderHint:
     """
@@ -332,11 +326,11 @@ class RenderHint:
         valid_strategies = ("smart", "head", "tail", "ellipsis-middle")
         if self.truncate_strategy not in valid_strategies:
             raise ValueError(f"Invalid truncate_strategy: {self.truncate_strategy}. "
-                           f"Must be one of {valid_strategies}")
+                             f"Must be one of {valid_strategies}")
         valid_formats = ("text", "compact", "json", "llm_prompt", "markdown")
         if self.output_format not in valid_formats:
             raise ValueError(f"Invalid output_format: {self.output_format}. "
-                           f"Must be one of {valid_formats}")
+                             f"Must be one of {valid_formats}")
 
     def apply_limits(self, text: str) -> str:
         """Предварительная обрезка текста по лимитам"""
@@ -397,7 +391,7 @@ class RenderHint:
                 footer = lines[i+1:]
                 break
 
-        result = header + ["    [...]"] + footer
+        result = header + [" [...]"] + footer
         return result[:max_lines]  # на всякий случай
 
     def to_dict(self) -> Dict[str, Any]:

@@ -1,4 +1,3 @@
-
 """
 ctxfind-v2: JSON Renderer
 
@@ -17,7 +16,6 @@ from pathlib import Path
 from core.models import ParseResult, RenderHint, CodeNode
 from core.registry import register_renderer
 from renderers.base import BaseRendererImpl
-
 
 class JSONRenderer(BaseRendererImpl):
     """
@@ -102,7 +100,6 @@ class JSONRenderer(BaseRendererImpl):
             output["files"].append(file_data)
 
         return [json.dumps(output, indent=2, default=str, ensure_ascii=False)]
-
 
 # Регистрация
 register_renderer("json", JSONRenderer)

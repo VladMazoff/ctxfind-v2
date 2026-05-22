@@ -13,15 +13,14 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 
-
 @dataclass
 class HeuristicWeights:
     """Настраиваемые веса для скоринга (дефолты из v1)"""
-    position_weight: float = 0.3      # Чем ближе query к началу узла, тем лучше
-    length_penalty: float = 0.2       # Слишком длинные узлы менее релевантны
-    role_bonus: float = 0.4           # Определения важнее использований
-    complexity_bonus: float = 0.1     # Сложные узлы чаще ищут
-    export_bonus: float = 0.2         # Экспортируемые символы приоритетнее
+    position_weight: float = 0.3  # Чем ближе query к началу узла, тем лучше
+    length_penalty: float = 0.2  # Слишком длинные узлы менее релевантны
+    role_bonus: float = 0.4  # Определения важнее использований
+    complexity_bonus: float = 0.1  # Сложные узлы чаще ищут
+    export_bonus: float = 0.2  # Экспортируемые символы приоритетнее
 
     def __post_init__(self):
         for attr_name, value in self.__dict__.items():
@@ -29,7 +28,6 @@ class HeuristicWeights:
                 raise ValueError(f"{attr_name} must be numeric, got {type(value)}")
             if value < 0:
                 raise ValueError(f"{attr_name} must be non-negative, got {value}")
-
 
 @dataclass
 class Config:
@@ -113,10 +111,8 @@ class Config:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
-
 # Глобальный инстанс (лениво инициализируется)
 _config: Optional[Config] = None
-
 
 def get_config() -> Config:
     """Получить глобальный конфиг (ленивая загрузка)"""
@@ -124,7 +120,6 @@ def get_config() -> Config:
     if _config is None:
         _config = Config.load()
     return _config
-
 
 def set_config(config: Config):
     """Установить глобальный конфиг (для тестов)"""

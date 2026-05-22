@@ -17,7 +17,6 @@ import parsers
 import enrichers
 import renderers
 
-
 def test_e2e_search():
     """End-to-end: поиск на test_project"""
     test_dir = Path(__file__).parent.parent / "test_project"
@@ -49,7 +48,6 @@ def test_e2e_search():
 
     print(f"✅ E2E test passed: {len(results)} files, {total_matches} matches")
     return True
-
 
 def test_e2e_json():
     """End-to-end: JSON вывод"""
@@ -84,7 +82,6 @@ def test_e2e_json():
         print(f"✅ E2E JSON test passed: {len(data['matches'])} matches")
 
     return True
-
 
 if __name__ == "__main__":
     success = True
