@@ -1,0 +1,13 @@
+.user-card {
+    border: 1px solid #ccc;
+    padding: 16px;
+}
+
+.user-name {
+    font-weight: bold;
+    color: #333;
+}
+
+.user-email {
+    color: #666;
+}

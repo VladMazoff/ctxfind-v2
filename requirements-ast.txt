@@ -1,0 +1,7 @@
+# Optional AST dependencies for ctxfind-v2
+# Install with: pip install -r requirements-ast.txt
+# Note: On Windows with Python 3.8, MSVC Build Tools may be required.
+
+tree-sitter>=0.20.0
+tree-sitter-python>=0.20.0
+tree-sitter-javascript>=0.20.0

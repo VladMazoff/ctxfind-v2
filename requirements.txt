@@ -1,0 +1,12 @@
+# ctxfind-v2 dependencies
+# Минимальный набор для ядра
+
+# Для .gitignore parsing
+pathspec>=0.11.0
+
+# Для tree-sitter парсера (опционально, для DEEP режима)
+# tree-sitter==0.20.4
+# tree-sitter-languages==1.10.2
+
+# Для точного подсчёта токенов (опционально, для LLM режима)
+# tiktoken>=0.5.0

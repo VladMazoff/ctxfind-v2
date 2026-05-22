@@ -1,0 +1,17 @@
+<html>
+<head><title>User Page</title></head>
+<body>
+    <div class="user-card">
+        <span class="user-name">{{ user.name }}</span>
+        <span class="user-email">{{ user.email }}</span>
+    </div>
+    <script>
+        // validate form before submit
+        function submitForm() {
+            if (validate(this.form)) {
+                this.form.submit();
+            }
+        }
+    </script>
+</body>
+</html>
