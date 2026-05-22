@@ -1,27 +1,24 @@
 """
-ctxfind-v2: Compact Text Renderer
+ctxfind-v2: Compact Text Renderer — Final Format
 
-Стратегия:
-- Человекочитаемый вывод
-- Обрезка по лимитам
-- Маркеры v1: << def, >> use, >< mod
-- Формат: >> def process_user(...) # [file:line]
+Формат вывода:
+    {role} {kind} {signature} # [{path}:{line}] | lang:{lang} | rel:{score}
+
+Примеры:
+    << def class UserService: # [.\\test_project\\user_service.py:15] | lang:py | rel:0.83
+    >< mod method addUser(userData) { ... } # [.\\test_project\\user_manager.js:10] | lang:js | rel:0.80
+    >> use function find_user(self, email) -> Optional[User]: # [.\\test_project\\user_service.py:27] | lang:py | rel:0.80
 """
 
 from typing import List, Dict, Any, Optional
+import os
 from core.models import ParseResult, RenderHint, CodeNode, Span
 from core.registry import register_renderer
 from renderers.base import BaseRendererImpl
 
 class TextCompactRenderer(BaseRendererImpl):
     """
-    Компактный текстовый рендерер.
-
-    Пример вывода:
-    >> def process_user(data: Dict) -> User: # [services/user_service.py:45]
-    # uses: User (models.py:12)
-    # complexity: 12 | has tests: ✓
-    # [body hidden: use --mode full to expand]
+    Компактный текстовый рендерер — финальный формат.
     """
 
     name = "text-compact"
@@ -33,129 +30,86 @@ class TextCompactRenderer(BaseRendererImpl):
         hint: RenderHint,
         options: Optional[Dict[str, Any]]
     ) -> str:
-        """Отрендерить один узел в компактном формате"""
-        lines = []
+        """Отрендерить один узел в финальном формате."""
 
-        # Маркер роли из v1
+        # Роль
         role = node.meta.get("v1_role", ">> use")
-        role_marker = role if role else ">>"
 
-        # ИСПРАВЛЕНИЕ: берём сигнатуру узла — первые строки, содержащие имя узла
-        # А не просто первую строку context_code (которая может быть родителем)
-        signature = self._extract_signature(node)
+        # Kind
+        kind = node.kind
 
-        # Обрезаем слишком длинную сигнатуру
-        max_sig_len = 80
-        if len(signature) > max_sig_len:
-            signature = signature[:max_sig_len] + " ..."
+        # Сигнатура: сжатый текст узла (первая строка, обрезанная)
+        signature = self._compact_signature(node)
 
-        header = f"{role_marker} {signature} # [{node.file_path}:{node.span.start_line + 1}]"
-        lines.append(header)
+        # Путь: упрощённый (только имя файла + 1-2 уровня директории)
+        short_path = self._shorten_path(node.file_path)
 
-        # Мета-информация
-        meta_parts = []
+        # Язык: сокращение
+        lang_short = self._lang_short(node.language)
 
-        # Язык и kind
-        meta_parts.append(f"{node.language}/{node.kind}")
+        # Релевантность
+        rel = node.meta.get("v1_node_score", 0.0)
 
-        # Сложность
-        complexity = node.meta.get("complexity")
-        if complexity is not None:
-            meta_parts.append(f"complexity:{complexity}")
+        # Собираем строку
+        parts = [
+            f"{role} {kind} {signature}",
+            f"# [{short_path}:{node.span.start_line + 1}]",
+            f"| lang:{lang_short}",
+            f"| rel:{rel:.2f}",
+        ]
 
-        # Экспорт
-        if node.meta.get("is_exported"):
-            meta_parts.append("exported")
+        return " ".join(parts)
 
-        # Тесты
-        if node.meta.get("has_tests"):
-            meta_parts.append("tests:✓")
-
-        # Скоринг
-        score = node.meta.get("v1_node_score")
-        if score is not None:
-            meta_parts.append(f"score:{score:.2f}")
-
-        if meta_parts:
-            lines.append(f" # {' | '.join(meta_parts)}")
-
-        # Связи (references)
-        if node.references and hint.show_imports:
-            refs = node.references[:3]  # максимум 3
-            ref_strs = []
-            for ref in refs:
-                loc = f"{ref.target_file or ref.source_file}"
-                ref_strs.append(f"{ref.target_name} ({loc})")
-            if ref_strs:
-                lines.append(f" # uses: {', '.join(ref_strs)}")
-
-        # Показать тело, если запрошено
-        if hint.show_body and node.context_code:
-            body_lines = node.context_code.splitlines()
-            # Пропускаем строки до сигнатуры (контекст перед узлом)
-            sig_lines = signature.splitlines()
-            skip = 0
-            for i, line in enumerate(body_lines):
-                if node.name in line:
-                    skip = i + len(sig_lines)
-                    break
-
-            if skip < len(body_lines):
-                body = "\n".join(body_lines[skip:])
-                # Обрезаем по лимитам
-                body = self._truncate_code(body, hint.max_lines or 20, hint.truncate_strategy)
-                if body.strip():
-                    lines.append(body)
-        else:
-            # Показываем hint, что тело скрыто
-            if node.kind in ("function", "method", "class"):
-                lines.append(" # [body hidden: use --mode full to expand]")
-
-        # Пустая строка-разделитель
-        lines.append("")
-
-        return "\n".join(lines)
-
-    def _extract_signature(self, node: CodeNode) -> str:
+    def _compact_signature(self, node: CodeNode) -> str:
         """
-        Извлечь сигнатуру узла из context_code.
+        Сжать сигнатуру узла до одной строки.
 
-        ИСПРАВЛЕНИЕ: ищем строки, содержащие имя узла, и берём их как сигнатуру.
-        Для метода/функции — это строка с def/class/func.
+        - Берём текст узла (context_code)
+        - Заменяем переносы строк на пробелы
+        - Обрезаем до 80 символов
+        - Добавляем ... если обрезано
         """
-        ctx_lines = node.context_code.splitlines()
-        if not ctx_lines:
-            return node.name
+        text = node.context_code.strip()
 
-        # Ищем первую строку, содержащую имя узла
-        for i, line in enumerate(ctx_lines):
-            if node.name in line:
-                # Берём эту строку и следующие (для многострочных сигнатур)
-                sig_lines = [line.strip()]
-                # Проверяем следующие строки — если они продолжают сигнатуру (отступ меньше или скобки)
-                for j in range(i + 1, min(i + 3, len(ctx_lines))):
-                    next_line = ctx_lines[j].strip()
-                    # Если следующая строка — продолжение сигнатуры (скобки не закрыты)
-                    if next_line and not next_line.startswith("#"):
-                        # Проверяем баланс скобок
-                        open_count = sum(sig_lines[-1].count(c) for c in "({[")
-                        close_count = sum(sig_lines[-1].count(c) for c in ")}]")
-                        if open_count > close_count:
-                            sig_lines.append(next_line)
-                        else:
-                            break
-                    else:
-                        break
+        # Убираем лишние пробелы и переносы
+        text = " ".join(text.split())
 
-                return " ".join(sig_lines)
+        # Обрезаем
+        max_len = 80
+        if len(text) > max_len:
+            # Ищем последний пробел перед лимитом
+            cutoff = text.rfind(" ", 0, max_len - 4)
+            if cutoff > 20:
+                text = text[:cutoff] + " ..."
+            else:
+                text = text[:max_len - 4] + " ..."
 
-        # Fallback: первая непустая строка
-        for line in ctx_lines:
-            stripped = line.strip()
-            if stripped:
-                return stripped
+        return text
 
-        return node.name
+    def _shorten_path(self, file_path: str) -> str:
+        """
+        Укоротить путь: оставить только последние 2 компонента.
+        """
+        # Нормализуем слеши
+        normalized = file_path.replace("/", "\\")
+        parts = normalized.split("\\")
+
+        # Берём последние 2 части
+        if len(parts) >= 2:
+            return ".\\" + "\\".join(parts[-2:])
+        return normalized
+
+    def _lang_short(self, language: str) -> str:
+        """Сокращение языка."""
+        mapping = {
+            "python": "py",
+            "javascript": "js",
+            "typescript": "ts",
+            "css": "css",
+            "html": "html",
+            "unknown": "?",
+        }
+        return mapping.get(language, language[:2])
 
     def _format_output(
         self,
@@ -164,17 +118,11 @@ class TextCompactRenderer(BaseRendererImpl):
         hint: RenderHint,
         options: Optional[Dict[str, Any]]
     ) -> str:
-        """Финальное форматирование вывода"""
+        """Финальное форматирование вывода."""
         if not rendered_nodes:
             return ""
 
         parts = []
-
-        # Заголовок файла (если несколько узлов из одного файла)
-        if len(rendered_nodes) > 1:
-            parts.append(f"# {result.file_path}")
-            parts.append("")
-
         parts.extend(rendered_nodes)
 
         # Итоговая статистика
